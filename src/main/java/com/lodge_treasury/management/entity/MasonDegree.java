@@ -1,0 +1,36 @@
+package com.lodge_treasury.management.entity;
+
+import com.lodge_treasury.management.enums.DegreeType;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "mason_degrees")
+@Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor
+public class MasonDegree extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "degree_id", unique = true, nullable = false)
+    private Integer degreeId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mason_id", nullable = false)
+    private Mason mason;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "degree_type", nullable = false, length = 2)
+    private DegreeType degreeType;
+
+    @Column(name = "received_date", nullable = false)
+    private LocalDate receivedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conferred_by")
+    private MasonOffices conferredBy;
+
+    @Column(name = "notes", length = 250)
+    private String notes;
+}

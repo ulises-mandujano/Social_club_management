@@ -1,0 +1,16 @@
+package com.lodge_treasury.management.repository;
+
+import com.lodge_treasury.management.entity.MasonContact;
+import com.lodge_treasury.management.entity.Mason;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface MasonContactsRepository  extends JpaRepository<MasonContact,Integer> {
+
+    Optional<MasonContact> findByMason(Mason mason);
+    Boolean existsByEmail(String email);
+    Boolean existsByMobile(String mobile);
+}
