@@ -4,11 +4,17 @@ import com.lodge_treasury.management.enums.ContactPreference;
 import com.lodge_treasury.management.enums.DegreeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(
         name = "Mason Create New",
         description = "Schema to hold mason registry information"

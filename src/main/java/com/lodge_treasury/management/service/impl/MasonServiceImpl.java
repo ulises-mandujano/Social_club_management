@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -31,6 +33,7 @@ public class MasonServiceImpl implements IMasonService {
     private MasonContactsRepository contactRepository;
     private MasonDegreesRepository degreesRepository;
     private MasonOfficesRepository masonOfficesRepository;
+    private final MasonDegreeMapper masonDegreeMapper;
 
     /**
      *
@@ -53,21 +56,29 @@ public class MasonServiceImpl implements IMasonService {
         MasonContact contact = MasonContactMapper.mapMasonCreateDtoToMasonContact(masonCreateDto);
         contact.setMason(mason);
         contactRepository.save(contact);
-        MasonDegree masonDegree = MasonDegreeMapper.mapMasonCreateDtoToMasonDegree(masonCreateDto);
+        MasonDegree masonDegree = masonDegreeMapper.mapMasonCreateDtoToMasonDegree(masonCreateDto);
         masonDegree.setMason(mason);
         Optional<MasonOffices> currentMaster = masonOfficesRepository.findCurrentByOfficeName("Venerable Maestro");
-        if(currentMaster.isPresent()) {
-            masonDegree.setConferredBy(currentMaster.get());
-            degreesRepository.save(masonDegree);
-        }
+        currentMaster.ifPresent(masonOffices -> masonDegree.setConferredBy(masonOffices.getMason()));
+        degreesRepository.save(masonDegree);
         return mason.getMasonId();
     }
 
     @Override
     public List<MemberDto> findAllMasons(){
-        List<MemberDto> memberDtos = new ArrayList<>();
-        List<Mason> mason = masonsRepository.findAll();
-        mason.forEach(m -> memberDtos.add(MasonMapper.mapMasonToMemberDto(m, "AM")));
-        return memberDtos;
+        List<Mason> masons = masonsRepository.findAll();
+
+        Map<Integer, String> latestDegreeMap = degreesRepository.findAllLastestDegrees()
+                .stream()
+                .collect(Collectors.toMap(
+                        md -> md.getMason().getMasonId(),
+                        md -> md.getDegree().getDegreeCode()
+                ));
+        return masons.stream()
+                .map(m -> {
+                    String degreeCode = latestDegreeMap.getOrDefault(m.getMasonId(), "AM");
+                    return MasonMapper.mapMasonToMemberDto(m, degreeCode);
+                })
+                .collect(Collectors.toList());
     }
 }

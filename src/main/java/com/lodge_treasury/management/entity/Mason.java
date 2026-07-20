@@ -7,14 +7,16 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
+@Builder
 @Table(name = "masons")
 @Getter @Setter @ToString @AllArgsConstructor @NoArgsConstructor
 public class Mason extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Builder.Default
     @Column(name = "mason_id", unique = true, nullable = false)
-    private Integer masonId;
+    private Integer masonId = null;
 
     @Column(name = "name", nullable = false, length = 50)
     private String name;

@@ -26,6 +26,6 @@ public class ConceptPriceHistory extends BaseEntity{
     @Column(name = "effective_from", nullable = false)
     private LocalDate effectiveFrom;
 
-    @Column(name = "effective_to", nullable = false)
+    @Column(name = "effective_to")
     private LocalDate effectiveTo;
 }

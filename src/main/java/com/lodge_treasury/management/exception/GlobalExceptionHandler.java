@@ -35,4 +35,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         return new ResponseEntity<>(errorResponseDto, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(DegreeNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleDegreeNotFoundException(DegreeNotFoundException ex,
+                                                                          WebRequest request) {
+        ErrorResponseDto errorResponseDto = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponseDto, HttpStatus.NOT_FOUND);
+    }
 }
