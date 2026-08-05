@@ -4,19 +4,20 @@ spring:
   application:
     name: management
   datasource:
-    url: jdbc:h2:mem:testdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password: ''
-  h2:
-    console:
-      enabled: true
-  jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    defer-datasource-initialization: true
+    url: jdbc:postgresql://localhost:5432/mydb
+    username: ${POSTGRES_USER:myuser}
+    password: ${POSTGRES_PASSWORD:mypassword}
+    driver-class-name: org.postgresql.Driver
+
   sql:
     init:
       mode: always
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+  h2:
+    console:
+      enabled: false
