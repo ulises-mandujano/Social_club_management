@@ -47,4 +47,7 @@ public class Mason extends BaseEntity{
 
     @OneToOne(mappedBy = "mason", fetch = FetchType.LAZY)
     private MasonContact contact;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
 }

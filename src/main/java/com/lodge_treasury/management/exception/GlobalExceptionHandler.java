@@ -47,4 +47,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         );
         return new ResponseEntity<>(errorResponseDto, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(OutstandingDebtException.class)
+    public ResponseEntity<ErrorResponseDto> handleOutstandingDebt (OutstandingDebtException ex, WebRequest request) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
 }

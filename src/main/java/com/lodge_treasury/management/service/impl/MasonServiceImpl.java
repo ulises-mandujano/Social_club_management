@@ -1,31 +1,32 @@
 package com.lodge_treasury.management.service.impl;
 
+import com.lodge_treasury.management.dto.AdminMemberDto;
 import com.lodge_treasury.management.dto.MasonCreateDto;
 import com.lodge_treasury.management.dto.MemberDto;
-import com.lodge_treasury.management.entity.Mason;
-import com.lodge_treasury.management.entity.MasonContact;
-import com.lodge_treasury.management.entity.MasonDegree;
-import com.lodge_treasury.management.entity.MasonOffices;
+import com.lodge_treasury.management.entity.*;
 import com.lodge_treasury.management.exception.MasonAlreadyExistsException;
+import com.lodge_treasury.management.exception.MasonNotFoundException;
+import com.lodge_treasury.management.exception.OutstandingDebtException;
+import com.lodge_treasury.management.mapper.AdminMemberMapper;
 import com.lodge_treasury.management.mapper.MasonContactMapper;
 import com.lodge_treasury.management.mapper.MasonDegreeMapper;
 import com.lodge_treasury.management.mapper.MasonMapper;
-import com.lodge_treasury.management.repository.MasonContactsRepository;
-import com.lodge_treasury.management.repository.MasonDegreesRepository;
-import com.lodge_treasury.management.repository.MasonOfficesRepository;
-import com.lodge_treasury.management.repository.MasonsRepository;
+import com.lodge_treasury.management.repository.*;
 import com.lodge_treasury.management.service.IMasonService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @AllArgsConstructor
 public class MasonServiceImpl implements IMasonService {
 
@@ -33,6 +34,7 @@ public class MasonServiceImpl implements IMasonService {
     private MasonContactsRepository contactRepository;
     private MasonDegreesRepository degreesRepository;
     private MasonOfficesRepository masonOfficesRepository;
+    private final MasonStatusHistoryRepository statusHistoryRepository;
     private final MasonDegreeMapper masonDegreeMapper;
 
     /**
@@ -66,19 +68,99 @@ public class MasonServiceImpl implements IMasonService {
 
     @Override
     public List<MemberDto> findAllMasons(){
-        List<Mason> masons = masonsRepository.findAll();
+        List<Mason> masons = masonsRepository.findAllByDeletedFalse();
+        Map<Integer, String> latestDegreeMap = getLatestDegreeMap();
 
-        Map<Integer, String> latestDegreeMap = degreesRepository.findAllLastestDegrees()
-                .stream()
-                .collect(Collectors.toMap(
-                        md -> md.getMason().getMasonId(),
-                        md -> md.getDegree().getDegreeCode()
-                ));
         return masons.stream()
                 .map(m -> {
                     String degreeCode = latestDegreeMap.getOrDefault(m.getMasonId(), "AM");
                     return MasonMapper.mapMasonToMemberDto(m, degreeCode);
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Mason getMasonById(Integer id) {
+        return masonsRepository.findByMasonIdAndDeletedFalse(id)
+                .orElseThrow(() -> new MasonNotFoundException(id));
+    }
+
+    @Override
+    @Transactional
+    public void deleteMason(Integer id, String reason) {
+        Mason mason = getMasonById(id);
+
+        MasonStatusHistory history = new MasonStatusHistory();
+        history.setMason(mason);
+        history.setStatus(false);
+        history.setChangeDate(LocalDate.now());
+        history.setReason(reason);
+        history.setOutstandingDebt(BigDecimal.ZERO); //TODO Calculate the debt
+
+        statusHistoryRepository.save(history);
+
+        mason.setDeleted(true);
+        masonsRepository.save(mason);
+    }
+
+    @Override
+    @Transactional
+    public void restoreMason (Integer id) {
+        Mason mason = masonsRepository.findById(id)
+                .orElseThrow(() -> new MasonNotFoundException(id));
+        if(!mason.isDeleted()) {
+            throw new IllegalStateException("Mason is not deleted, cannot restore.");
+        }
+
+        Optional<MasonStatusHistory> latestInactiveOpt = statusHistoryRepository.findLatestInactiveByMasonId(id);
+
+        if(latestInactiveOpt.isEmpty()) {
+            log.warn("No inactive status history for mason {}. Restoring without modifying history.", id);
+        } else {
+            MasonStatusHistory inactiveRecord = latestInactiveOpt.get();
+            BigDecimal debt = inactiveRecord.getOutstandingDebt();
+
+            if (debt != null && debt.compareTo(BigDecimal.ZERO) > 0) {
+                throw new OutstandingDebtException(id, debt);
+            }
+
+            statusHistoryRepository.delete(inactiveRecord);
+        }
+        mason.setDeleted(false);
+        masonsRepository.save(mason);
+    }
+
+    @Override
+    public List<AdminMemberDto> findAllMasonsIncludingDeleted() {
+        List<Mason> allMasons = masonsRepository.findAll();
+        Map<Integer, String> latestDegreeMap = getLatestDegreeMap();
+
+        return allMasons.stream()
+                .map(m -> {
+                    String degreeCode = latestDegreeMap.getOrDefault(m.getMasonId(), "AM");
+                    MemberDto memberDto = MasonMapper.mapMasonToMemberDto(m, degreeCode);
+                    return AdminMemberMapper.fromMemberDtotoAdminMemberDto(memberDto, m.isDeleted());
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void hardDeleteMason (Integer id) {
+        Mason mason = masonsRepository.findById(id)
+                .orElseThrow(() -> new MasonNotFoundException(id));
+
+        contactRepository.deleteByMasonId(id);
+        degreesRepository.deleteByMasonId(id);
+        masonsRepository.delete(mason);
+    }
+
+    private Map<Integer, String> getLatestDegreeMap() {
+        return degreesRepository.findAllLastestDegrees()
+                .stream()
+                .collect(Collectors.toMap(
+                        md -> md.getMason().getMasonId(),
+                        md -> md.getDegree().getDegreeCode()
+                ));
     }
 }

@@ -2,6 +2,7 @@ package com.lodge_treasury.management.repository;
 
 import com.lodge_treasury.management.entity.MasonDegree;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,4 +20,8 @@ public interface MasonDegreesRepository extends JpaRepository<MasonDegree,Intege
     @Query("SELECT md FROM MasonDegree md WHERE md.degreeId IN " +
            "(SELECT MAX(md2.degreeId) FROM MasonDegree md2 GROUP BY md2.mason.masonId)")
     List<MasonDegree> findAllLastestDegrees();
+
+    @Modifying
+    @Query("DELETE FROM MasonDegree md WHERE md.mason.masonId = :masonId")
+    void deleteByMasonId (@Param("masonId") Integer masonId);
 }
