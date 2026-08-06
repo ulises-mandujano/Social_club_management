@@ -1,19 +1,19 @@
 package com.lodge_treasury.management.service.impl;
 
 import com.lodge_treasury.management.dto.MasonContactUpdateDto;
+import com.lodge_treasury.management.dto.MasonCreateDto;
 import com.lodge_treasury.management.dto.MasonUpdateDto;
 import com.lodge_treasury.management.entity.Mason;
 import com.lodge_treasury.management.entity.MasonContact;
+import com.lodge_treasury.management.entity.MasonDegree;
 import com.lodge_treasury.management.entity.MasonStatusHistory;
 import com.lodge_treasury.management.enums.ContactPreference;
+import com.lodge_treasury.management.enums.DegreeType;
 import com.lodge_treasury.management.exception.MasonAlreadyExistsException;
 import com.lodge_treasury.management.exception.MasonNotFoundException;
 import com.lodge_treasury.management.exception.OutstandingDebtException;
 import com.lodge_treasury.management.mapper.MasonDegreeMapper;
-import com.lodge_treasury.management.repository.MasonContactsRepository;
-import com.lodge_treasury.management.repository.MasonOfficesRepository;
-import com.lodge_treasury.management.repository.MasonStatusHistoryRepository;
-import com.lodge_treasury.management.repository.MasonsRepository;
+import com.lodge_treasury.management.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,6 +37,9 @@ public class MasonServiceImplTest {
 
     @Mock
     private MasonContactsRepository contactsRepository;
+
+    @Mock
+    private MasonDegreesRepository degreesRepository;
 
     @Mock
     private MasonOfficesRepository masonOfficesRepository;
@@ -265,5 +268,107 @@ public class MasonServiceImplTest {
 
         assertThatThrownBy(() -> masonService.getMasonById(1))
                 .isInstanceOf(MasonNotFoundException.class);
+    }
+
+    @Test
+    void hardDeleteMason_shouldDeleteContactAndDegreeAndMason_whenMasonExists() {
+        when(masonsRepository.findById(1)).thenReturn(Optional.of(mason));
+
+        masonService.hardDeleteMason(1);
+
+        verify(contactsRepository).deleteByMasonId(1);
+        verify(degreesRepository).deleteByMasonId(1);
+        verify(masonsRepository).delete(mason);
+    }
+
+    @Test
+    void hardDeleteMason_shouldThrow_whenMasonNotFound() {
+        when(masonsRepository.findById(1)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> masonService.hardDeleteMason(1))
+                .isInstanceOf(MasonNotFoundException.class);
+
+        verify(contactsRepository, never()).deleteByMasonId(anyInt());
+        verify(degreesRepository, never()).deleteByMasonId(anyInt());
+        verify(masonsRepository, never()).delete(any());
+    }
+
+    @Test
+    void registerNewMember_shouldCreateMasonAndContactAndDegree_WhenValid() {
+        MasonCreateDto dto = new MasonCreateDto();
+        dto.setName("John");
+        dto.setLastName("Doe");
+        dto.setEmail("john@example.com");
+        dto.setMobile("5551234");
+        dto.setBirthDate(LocalDate.of(1990, 1, 1));
+        dto.setInitialDegree(DegreeType.MM);
+
+        when(contactsRepository.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(contactsRepository.existsByMobile(dto.getMobile())).thenReturn(false);
+        when(masonsRepository.save(any(Mason.class))).thenAnswer(inv -> {
+           Mason saved = inv.getArgument(0);
+           saved.setMasonId(1);
+           return saved;
+        });
+        when(contactsRepository.save(any(MasonContact.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(masonOfficesRepository.findCurrentByOfficeName("Venerable Maestro")).thenReturn(Optional.empty());
+        when(degreesRepository.save(any(MasonDegree.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        MasonDegree mockDegree = new MasonDegree();
+        when(masonDegreeMapper.mapMasonCreateDtoToMasonDegree(any(MasonCreateDto.class)))
+                .thenReturn(mockDegree);
+
+        Integer id = masonService.registerNewMember(dto);
+
+        assertThat(id).isEqualTo(1);
+
+        verify(contactsRepository).existsByEmail(dto.getEmail());
+        verify(contactsRepository).existsByMobile(dto.getMobile());
+        verify(masonsRepository).save(any(Mason.class));
+        verify(contactsRepository).save(any(MasonContact.class));
+        verify(masonOfficesRepository).findCurrentByOfficeName("Venerable Maestro");
+        verify(degreesRepository).save(any(MasonDegree.class));
+    }
+
+    @Test
+    void registerNewMember_shouldThrow_whenEmailAlreadyExists() {
+        // Given
+        MasonCreateDto dto = new MasonCreateDto();
+        dto.setEmail("existing@example.com");
+        dto.setMobile("555-0000");
+        // ... set other fields
+
+        when(contactsRepository.existsByEmail(dto.getEmail())).thenReturn(true);
+
+        // When / Then
+        assertThatThrownBy(() -> masonService.registerNewMember(dto))
+                .isInstanceOf(MasonAlreadyExistsException.class)
+                .hasMessageContaining("correo electrónico");
+
+        verify(contactsRepository, never()).existsByMobile(anyString());
+        verify(masonsRepository, never()).save(any());
+        verify(contactsRepository, never()).save(any());
+        verify(degreesRepository, never()).save(any());
+    }
+
+    @Test
+    void registerNewMember_shouldThrow_whenMobileAlreadyExists() {
+        // Given
+        MasonCreateDto dto = new MasonCreateDto();
+        dto.setEmail("new@example.com");
+        dto.setMobile("existing-mobile");
+        // ... set other fields
+
+        when(contactsRepository.existsByEmail(dto.getEmail())).thenReturn(false);
+        when(contactsRepository.existsByMobile(dto.getMobile())).thenReturn(true);
+
+        // When / Then
+        assertThatThrownBy(() -> masonService.registerNewMember(dto))
+                .isInstanceOf(MasonAlreadyExistsException.class)
+                .hasMessageContaining("celular");
+
+        verify(masonsRepository, never()).save(any());
+        verify(contactsRepository, never()).save(any());
+        verify(degreesRepository, never()).save(any());
     }
 }

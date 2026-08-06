@@ -16,6 +16,7 @@ public class MasonContact extends BaseEntity {
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "mason_id", nullable = false, unique = true)
+    @ToString.Exclude
     private Mason mason;
 
     @Column(name = "mobile", length = 20, nullable = false, unique = true)

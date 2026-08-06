@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
@@ -116,6 +117,29 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
 
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MasonNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleMasonNotFound(MasonNotFoundException ex, WebRequest request) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.NOT_FOUND,
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDto> handleMissingServletRquestParameter
+            (MissingServletRequestParameterException ex, WebRequest request) {
+        ErrorResponseDto error = new ErrorResponseDto(
+                request.getDescription(false),
+                HttpStatus.BAD_REQUEST,
+                "Required request parameter '" + ex.getParameterName() + "' is not present",
+                LocalDateTime.now()
+        );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 }
