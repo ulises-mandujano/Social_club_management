@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 public class MasonContactDto {
+    private Integer contactId;
     private Integer masonId;
     private String mobile;
     private String email;

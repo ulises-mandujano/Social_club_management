@@ -20,4 +20,7 @@ public interface MasonContactsRepository  extends JpaRepository<MasonContact,Int
     @Modifying
     @Query("DELETE FROM MasonContact mc WHERE mc.mason.masonId = :masonId")
     void deleteByMasonId(@Param("masonId") Integer masonId);
+
+    boolean existsByEmailAndMason_MasonIdNot(String email, Integer masonId);
+    boolean existsByMobileAndMason_MasonIdNot(String mobile, Integer masonId);
 }

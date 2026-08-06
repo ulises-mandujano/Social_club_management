@@ -1,11 +1,10 @@
 package com.lodge_treasury.management.controller;
 
 import com.lodge_treasury.management.constants.LodgeConstants;
-import com.lodge_treasury.management.dto.AdminMemberDto;
-import com.lodge_treasury.management.dto.ApiCustomResponse;
-import com.lodge_treasury.management.dto.MasonCreateDto;
-import com.lodge_treasury.management.dto.MemberDto;
+import com.lodge_treasury.management.dto.*;
 import com.lodge_treasury.management.entity.Mason;
+import com.lodge_treasury.management.entity.MasonContact;
+import com.lodge_treasury.management.mapper.MasonContactMapper;
 import com.lodge_treasury.management.mapper.MasonMapper;
 import com.lodge_treasury.management.service.IMasonService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,7 +26,7 @@ import java.util.List;
         description = "CRUD REST APIs to CREATE, UPDATE, FETCH and DELETE mason details"
 )
 @RestController
-@RequestMapping(path = "/api", produces = {MediaType.APPLICATION_JSON_VALUE})
+@RequestMapping(path = "/api/v1", produces = {MediaType.APPLICATION_JSON_VALUE})
 @AllArgsConstructor
 @Validated
 public class MasonsController {
@@ -132,5 +131,35 @@ public class MasonsController {
     public ResponseEntity<Void> hardDeleteMason(@PathVariable Integer id) {
         imasonService.hardDeleteMason(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Update Mason REST API",
+            description = "REST API to update core Mason information"
+    )
+    @ApiResponse(responseCode = "200", description = "Mason updated successfully")
+    @PutMapping("/members/{id}")
+    public ResponseEntity<ApiCustomResponse<MemberDto>> updateMason (@PathVariable Integer id,
+                                                                     @Valid @RequestBody MasonUpdateDto updateDto) {
+        Mason update = imasonService.updateMason(id, updateDto);
+        MemberDto dto = MasonMapper.mapMasonToMemberDto(update, "AM");
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiCustomResponse.success("Mason updated successfully", dto));
+    }
+
+    @Operation(
+            summary = "Update Mason Contact REST API",
+            description = "REST API to update contact details of a Mason"
+    )
+    @ApiResponse(responseCode = "200", description = "Contact updated successfully")
+    @PutMapping("/members/{id}/contact")
+    public ResponseEntity<ApiCustomResponse<MasonContactDto>> updateMasonContact(
+            @PathVariable Integer id,
+            @Valid @RequestBody MasonContactUpdateDto updateDto) {
+
+        MasonContact updatedContact = imasonService.updateMasonContact(id, updateDto);
+        MasonContactDto responseDto = MasonContactMapper.mapMasonContactToMasonContactDto(updatedContact);
+        return ResponseEntity.ok(ApiCustomResponse.success("Contact updated successfully", responseDto));
     }
 }

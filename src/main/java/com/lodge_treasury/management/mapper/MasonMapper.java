@@ -1,6 +1,7 @@
 package com.lodge_treasury.management.mapper;
 
 import com.lodge_treasury.management.dto.MasonCreateDto;
+import com.lodge_treasury.management.dto.MasonUpdateDto;
 import com.lodge_treasury.management.dto.MemberDto;
 import com.lodge_treasury.management.entity.Mason;
 
@@ -26,5 +27,15 @@ public class MasonMapper {
         memberDto.setBirthDate(mason.getDateOfBirth());
         memberDto.setCurrentDegree(degree);
         return memberDto;
+    }
+
+    public static Mason mapMasonUpdateDtoToMason (Mason mason, MasonUpdateDto updateDto) {
+        mason.setName(updateDto.getName());
+        mason.setSecondName(updateDto.getSecondName());
+        mason.setLastName(updateDto.getLastName());
+        mason.setSecondLastName(updateDto.getSecondLastName());
+        mason.setDateOfBirth(updateDto.getDateOfBirth());
+        mason.setIsFreeMember(updateDto.getIsFreeMember());
+        return mason;
     }
 }

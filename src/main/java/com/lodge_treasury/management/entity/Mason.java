@@ -36,7 +36,7 @@ public class Mason extends BaseEntity{
     @Column(name = "is_free_member")
     private Boolean isFreeMember = false;
 
-    @OneToMany(mappedBy = "mason", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "mason")
     private List<MasonOffices> masonOffices;
 
     @OneToMany(mappedBy = "approvedBy")

@@ -1,8 +1,6 @@
 package com.lodge_treasury.management.service.impl;
 
-import com.lodge_treasury.management.dto.AdminMemberDto;
-import com.lodge_treasury.management.dto.MasonCreateDto;
-import com.lodge_treasury.management.dto.MemberDto;
+import com.lodge_treasury.management.dto.*;
 import com.lodge_treasury.management.entity.*;
 import com.lodge_treasury.management.exception.MasonAlreadyExistsException;
 import com.lodge_treasury.management.exception.MasonNotFoundException;
@@ -153,6 +151,36 @@ public class MasonServiceImpl implements IMasonService {
         contactRepository.deleteByMasonId(id);
         degreesRepository.deleteByMasonId(id);
         masonsRepository.delete(mason);
+    }
+
+    @Override
+    @Transactional
+    public Mason updateMason (Integer id, MasonUpdateDto updateDto) {
+        Mason mason = MasonMapper.mapMasonUpdateDtoToMason(getMasonById(id), updateDto);
+        return masonsRepository.save(mason);
+    }
+
+    @Override
+    @Transactional
+    public MasonContact updateMasonContact (Integer id, MasonContactUpdateDto updateDto) {
+        Mason mason = getMasonById(id);
+
+        MasonContact contact = mason.getContact();
+        if (contact == null) {
+            throw new IllegalStateException("Contact information not found for this mason");
+        }
+
+        if (contactRepository.existsByEmailAndMason_MasonIdNot(updateDto.getEmail(), id)) {
+            throw new MasonAlreadyExistsException("Another member already uses this email: " + updateDto.getEmail());
+        }
+
+        if (contactRepository.existsByMobileAndMason_MasonIdNot(updateDto.getMobile(), id)) {
+            throw new MasonAlreadyExistsException("Another member already uses this mobile number: " + updateDto.getMobile());
+        }
+
+        MasonContactMapper.mapMasonContactUpdateDtoToMasonContact(contact, updateDto);
+
+        return contactRepository.save(contact);
     }
 
     private Map<Integer, String> getLatestDegreeMap() {
