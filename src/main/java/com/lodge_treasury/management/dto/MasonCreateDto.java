@@ -16,7 +16,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(
-        name = "Mason Create New",
+        name = "Mason Create",
         description = "Schema to hold mason registry information"
 )
 public class MasonCreateDto {
